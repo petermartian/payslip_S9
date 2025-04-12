@@ -1,0 +1,6 @@
+streamlit
+import datetime
+fpdf
+base64
+io
+requests
