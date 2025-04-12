@@ -1,5 +1,5 @@
-streamlit
-datetime
+streamlit==1.44.1
+DateTime==5.5
 fpdf
 base64
 io
