@@ -76,16 +76,16 @@ def generate_pdf(data):
     return pdf_base64
 
 def main():
-    st.title("Payslip Generator")
+    st.title("S9 Payslip Generator")
 
     # Header Details
     st.header("Header Details")
     payslip_title = st.text_input("Payslip")
-    company_name = st.text_input("Company Name", value="SALMNINE INVESTMENT HOLDINGS LTD")
-    company_address = st.text_input("Company Address", value="Ligali Ayorinde")
+    company_name = st.text_input("Company Name", value="Salmnine Investment Ltd")
+    company_address = st.text_input("Company Address", value="FF Millennium Towers, Ligali Ayorinde, Victoria Island, Lagos")
 
     # Payslip & Employee Details
-    st.header("Payslip & Employee Details")
+    st.header("Employee Details")
     col1, col2 = st.columns(2)
     with col1:
         pay_date = st.date_input("Pay Date", datetime.date(2025, 4, 11))
