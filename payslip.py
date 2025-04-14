@@ -14,11 +14,22 @@ def generate_pdf(data):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # Add logo
+    # Add letterhead
+    try:
+        # Fetch the letterhead image
+        letterhead_url = "https://salmnine.com/wp-content/uploads/2024/08/letterhead.png"  # Replace with actual URL if needed
+        response = requests.get(letterhead_url)
+        letterhead_img = BytesIO(response.content)
+        # Place the letterhead at the top (x=0, y=0, width=210mm to span the A4 page)
+        pdf.image(letterhead_img, x=0, y=0, w=210)  # Height will auto-adjust proportionally
+    except Exception as e:
+        print(f"Error loading letterhead: {e}")
+
+    # Add logo (shifted down to avoid overlapping with letterhead)
     try:
         response = requests.get("https://salmnine.com/wp-content/uploads/2024/08/Salmnineweb-3.png")
         img = BytesIO(response.content)
-        pdf.image(img, x=150, y=10, w=50)  # Adjust x, y, w for placement
+        pdf.image(img, x=150, y=40, w=50)  # Adjusted y-coordinate to 40 to place below letterhead
     except Exception as e:
         print(f"Error loading logo: {e}")
 
@@ -26,7 +37,8 @@ def generate_pdf(data):
     pdf.set_fill_color(240, 248, 255)  # Alice Blue
     pdf.set_text_color(0, 0, 0)  # Black
 
-    # Header
+    # Header (shifted down to start below the letterhead and logo)
+    pdf.set_y(70)  # Adjust y-coordinate to start below the letterhead and logo
     pdf.cell(0, 10, txt="Payslip", ln=True, align='C', border=1, fill=True)
     pdf.set_fill_color(173, 216, 230)  # Light Blue for Company Name
     pdf.cell(0, 10, txt=data["company_name"], ln=True, align='C', border=1, fill=True)
@@ -108,39 +120,4 @@ def main():
 
     with col4:
         st.subheader("Deductions")
-        tax = st.number_input("Tax", value=100000)
-        employee_pension = st.number_input("Pension (Employee)", value=57000)
-        other_deductions = st.number_input("Other Deductions", value=0)
-        total_deductions = tax + employee_pension + other_deductions
-        st.write(f"Total Deductions: {format_currency(total_deductions)}")
-
-    net_pay = total_earnings - total_deductions
-    st.subheader("Net Pay")
-    st.write(format_currency(net_pay))
-
-    # PDF Download
-    if st.button("Generate Payslip PDF"):
-        data = {
-            "company_name": company_name,
-            "company_address": company_address,
-            "pay_date": pay_date,
-            "working_days": working_days,
-            "employee_name": employee_name,
-            "employee_id": employee_id,
-            "basic_pay": basic_pay,
-            "Housing": Housing,
-            "Transport": Transport,
-            "other_allowances": other_allowances,
-            "total_earnings": total_earnings,
-            "tax": tax,
-            "employee_pension": employee_pension,
-            "other_deductions": other_deductions,
-            "total_deductions": total_deductions,
-            "net_pay": net_pay,
-        }
-        pdf_base64 = generate_pdf(data)
-        href = f'<a href="data:application/pdf;base64,{pdf_base64}" download="payslip.pdf">Download Payslip PDF</a>'
-        st.markdown(href, unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
+        tax
