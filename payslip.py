@@ -3,6 +3,11 @@ import datetime
 from fpdf import FPDF
 import base64
 from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+import tempfile
+import os
 import requests
 
 def format_currency(amount):
@@ -15,20 +20,36 @@ def generate_pdf(data):
     pdf.set_font("Arial", size=12)
 
     # Add logo at top-right corner of the PDF (using Google Drive link)
-    logo_url = "https://drive.google.com/uc?export=download&id=1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J"
+    logo_url = "https://drive.google.com/file/d/1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J/view?usp=drive_link"
     try:
-        response = requests.get(logo_url, stream=True)
-        if response.status_code == 200:
-            logo_img = BytesIO(response.content)
-            # Place logo at top-right: A4 width is 210mm, logo width is 50mm, so x = 210 - 50 - margin
-            pdf.image(logo_img, x=150, y=10, w=50)  # Adjust x, y, w as needed
-        else:
-            print(f"Failed to fetch logo for PDF. Status code: {response.status_code}")
-            # Fallback: Add a placeholder text in the PDF if the logo fails to load
+        # Modify the Google Drive URL to a direct download link
+        file_id = logo_url.split("/file/d/")[1].split("/")[0]
+        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+        # Download the logo image
+        logo_response = requests.get(download_url, timeout=10, stream=True)
+        logo_response.raise_for_status()  # Raise an error for bad status codes
+
+        # Check if the response is an image
+        content_type = logo_response.headers.get("content-type", "")
+        if "image" not in content_type:
+            print("The provided URL does not point to an image file.")
             pdf.set_xy(150, 10)
             pdf.set_text_color(255, 0, 0)  # Red text for error
-            pdf.cell(0, 10, txt="Logo failed to load", align='R')
+            pdf.cell(0, 10, txt="Logo failed to load: Not an image", align='R')
             pdf.set_text_color(0, 0, 0)  # Reset to black
+        else:
+            logo_img = BytesIO(logo_response.content)
+            # Place logo at top-right: A4 width is 210mm, logo width is 50mm, so x = 210 - 50 - margin
+            pdf.image(logo_img, x=150, y=10, w=50)  # Adjust x, y, w as needed
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading logo: {e}")
+        # Fallback: Add a placeholder text in the PDF if the logo fails to load
+        pdf.set_xy(150, 10)
+        pdf.set_text_color(255, 0, 0)  # Red text for error
+        pdf.cell(0, 10, txt="Logo failed to load: Download error", align='R')
+        pdf.set_text_color(0, 0, 0)  # Reset to black
     except Exception as e:
         print(f"Error loading logo for PDF: {str(e)}")
         # Fallback: Add a placeholder text in the PDF if the logo fails to load
@@ -101,14 +122,26 @@ def main():
     # Header Details
     st.header("Header Details")
     # Display logo in the UI (using Google Drive link)
-    logo_url = "https://drive.google.com/uc?export=download&id=1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J"
+    logo_url = "https://drive.google.com/file/d/1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J/view?usp=drive_link"
     try:
-        response = requests.get(logo_url, stream=True)
-        if response.status_code == 200:
+        # Modify the Google Drive URL to a direct download link
+        file_id = logo_url.split("/file/d/")[1].split("/")[0]
+        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+        # Download the logo image
+        response = requests.get(download_url, timeout=10, stream=True)
+        response.raise_for_status()  # Raise an error for bad status codes
+
+        # Check if the response is an image
+        content_type = response.headers.get("content-type", "")
+        if "image" not in content_type:
+            st.error("The provided URL does not point to an image file.")
+        else:
             logo_img = BytesIO(response.content)
             st.image(logo_img, width=150)  # Adjust width as needed
-        else:
-            st.error(f"Failed to load logo. Status code: {response.status_code}")
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error downloading logo: {e}")
     except Exception as e:
         st.error(f"Error loading logo: {str(e)}")
 
