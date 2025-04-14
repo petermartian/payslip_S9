@@ -14,7 +14,7 @@ def generate_pdf(data):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # Add logo at top-right corner
+    # Add logo at top-right corner of the PDF
     try:
         logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
         response = requests.get(logo_url, stream=True)
@@ -23,9 +23,9 @@ def generate_pdf(data):
             # Place logo at top-right: A4 width is 210mm, logo width is 50mm, so x = 210 - 50 - margin
             pdf.image(logo_img, x=150, y=10, w=50)  # Adjust x, y, w as needed
         else:
-            print(f"Failed to fetch logo. Status code: {response.status_code}")
+            print(f"Failed to fetch logo for PDF. Status code: {response.status_code}")
     except Exception as e:
-        print(f"Error loading logo: {str(e)}")
+        print(f"Error loading logo for PDF: {str(e)}")
 
     # Colors
     pdf.set_fill_color(240, 248, 255)  # Alice Blue
@@ -83,7 +83,18 @@ def main():
 
     # Header Details
     st.header("Header Details")
-    payslip_title = st.text_input("Payslip")
+    # Display logo instead of the "Payslip" text input
+    logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
+    try:
+        response = requests.get(logo_url, stream=True)
+        if response.status_code == 200:
+            logo_img = BytesIO(response.content)
+            st.image(logo_img, width=150)  # Adjust width as needed
+        else:
+            st.error(f"Failed to load logo. Status code: {response.status_code}")
+    except Exception as e:
+        st.error(f"Error loading logo: {str(e)}")
+
     company_name = st.text_input("Company Name", value="Salmnine Investment Ltd")
     company_address = st.text_input("Company Address", value="FF Millennium Towers, Ligali Ayorinde, Victoria Island, Lagos")
 
