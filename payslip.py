@@ -14,15 +14,6 @@ def generate_pdf(data):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # Add letterhead
-    try:
-        letterhead_url = "https://salmnine.com/wp-content/uploads/2024/08/letterhead.png"  # Replace with actual URL if needed
-        response = requests.get(letterhead_url)
-        letterhead_img = BytesIO(response.content)
-        pdf.image(letterhead_img, x=0, y=0, w=210)  # Span the A4 page width
-    except Exception as e:
-        print(f"Error loading letterhead: {e}")
-
     # Add logo at top-right corner
     try:
         logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
@@ -37,8 +28,8 @@ def generate_pdf(data):
     pdf.set_fill_color(240, 248, 255)  # Alice Blue
     pdf.set_text_color(0, 0, 0)  # Black
 
-    # Header (shifted down to start below the letterhead and logo)
-    pdf.set_y(70)  # Adjust y-coordinate to start below the letterhead and logo
+    # Header (shifted down to start below the logo)
+    pdf.set_y(40)  # Adjust y-coordinate to start below the logo (previously 70 due to letterhead)
     pdf.cell(0, 10, txt="Payslip", ln=True, align='C', border=1, fill=True)
     pdf.set_fill_color(173, 216, 230)  # Light Blue for Company Name
     pdf.cell(0, 10, txt=data["company_name"], ln=True, align='C', border=1, fill=True)
@@ -74,4 +65,85 @@ def generate_pdf(data):
     pdf.cell(95, 10, txt=f"Other Allowances: {format_currency(data['other_allowances'])}", ln=False, border=1)
     pdf.ln(10)
 
-    pdf.set_fill
+    pdf.set_fill_color(240, 248, 255)  # Alice Blue
+    pdf.cell(95, 10, txt=f"Total Earnings: {format_currency(data['total_earnings'])}", ln=False, border=1, fill=True)
+    pdf.cell(90, 10, txt=f"Total Deductions: {format_currency(data['total_deductions'])}", ln=True, border=1, fill=True)
+
+    pdf.cell(95, 10, txt=f"Net Pay: {format_currency(data['net_pay'])}", ln=False, border=1)
+
+    pdf_bytes = pdf.output(dest='S').encode('latin1')  # Default encoding
+    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+    return pdf_base64
+
+def main():
+    st.title("Payslip Generator")
+
+    # Header Details
+    st.header("Header Details")
+    payslip_title = st.text_input("Payslip")
+    company_name = st.text_input("Company Name", value="SALMNINE INVESTMENT HOLDINGS LTD")
+    company_address = st.text_input("Company Address", value="Ligali Ayorinde")
+
+    # Payslip & Employee Details
+    st.header("Payslip & Employee Details")
+    col1, col2 = st.columns(2)
+    with col1:
+        pay_date = st.date_input("Pay Date", datetime.date(2025, 4, 11))
+        working_days = st.number_input("Working Days", value=31)
+        st.button("Add Item (Pay Date/Working Days)")
+
+    with col2:
+        employee_name = st.text_input("Employee Name", value="James Arthur")
+        employee_id = st.text_input("Employee ID", value="0077")
+        st.button("Add Item (Employee Name/ID)")
+
+    # Salary Details
+    st.header("Salary Details")
+    col3, col4 = st.columns(2)
+    with col3:
+        st.subheader("Earnings")
+        basic_pay = st.number_input("Basic Pay", value=400000)
+        Housing = st.number_input("Housing", value=200000)
+        Transport = st.number_input("Transport", value=200000)
+        other_allowances = st.number_input("Other Allowances", value=23000)
+        total_earnings = basic_pay + Housing + Transport + other_allowances
+        st.write(f"Total Earnings: {format_currency(total_earnings)}")
+
+    with col4:
+        st.subheader("Deductions")
+        tax = st.number_input("Tax", value=100000)
+        employee_pension = st.number_input("Pension (Employee)", value=57000)
+        other_deductions = st.number_input("Other Deductions", value=0)
+        total_deductions = tax + employee_pension + other_deductions
+        st.write(f"Total Deductions: {format_currency(total_deductions)}")
+
+    net_pay = total_earnings - total_deductions
+    st.subheader("Net Pay")
+    st.write(format_currency(net_pay))
+
+    # PDF Download
+    if st.button("Generate Payslip PDF"):
+        data = {
+            "company_name": company_name,
+            "company_address": company_address,
+            "pay_date": pay_date,
+            "working_days": working_days,
+            "employee_name": employee_name,
+            "employee_id": employee_id,
+            "basic_pay": basic_pay,
+            "Housing": Housing,
+            "Transport": Transport,
+            "other_allowances": other_allowances,
+            "total_earnings": total_earnings,
+            "tax": tax,
+            "employee_pension": employee_pension,
+            "other_deductions": other_deductions,
+            "total_deductions": total_deductions,
+            "net_pay": net_pay,
+        }
+        pdf_base64 = generate_pdf(data)
+        href = f'<a href="data:application/pdf;base64,{pdf_base64}" download="payslip.pdf">Download Payslip PDF</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
