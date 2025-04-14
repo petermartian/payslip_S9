@@ -14,8 +14,8 @@ def generate_pdf(data):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # Add logo at top-right corner of the PDF
-    logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
+    # Add logo at top-right corner of the PDF (using Google Drive link)
+    logo_url = "https://drive.google.com/uc?export=download&id=1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J"
     try:
         response = requests.get(logo_url, stream=True)
         if response.status_code == 200:
@@ -65,9 +65,9 @@ def generate_pdf(data):
     pdf.ln(10)
 
     # Earnings & Deductions
-    pdf.set_fill_color(255, 105, 180)  # Hot Pink for "Earnings" header
+    pdf.set_fill_color(135, 206, 250)  # Sky Blue (same as address) for "Earnings" header
     pdf.cell(95, 10, txt="Earnings", ln=False, border=1, fill=True)
-    pdf.set_fill_color(255, 99, 71)  # Tomato Red for "Deductions" header
+    pdf.set_fill_color(135, 206, 250)  # Sky Blue (same as address) for "Deductions" header
     pdf.cell(90, 10, txt="Deductions", ln=True, border=1, fill=True)
 
     pdf.set_fill_color(240, 248, 255)  # Alice Blue for regular cells
@@ -100,8 +100,8 @@ def main():
 
     # Header Details
     st.header("Header Details")
-    # Display logo in the UI
-    logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
+    # Display logo in the UI (using Google Drive link)
+    logo_url = "https://drive.google.com/uc?export=download&id=1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J"
     try:
         response = requests.get(logo_url, stream=True)
         if response.status_code == 200:
