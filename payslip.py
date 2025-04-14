@@ -10,26 +10,29 @@ def format_currency(amount):
     return f"{amount:,.2f}"
 
 def generate_pdf(data):
-    pdf = FPDF()  # Removed encoding='utf-8'
+    pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
     # Add logo at top-right corner
     try:
-        logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine logo.png"
-        response = requests.get(logo_url)
-        logo_img = BytesIO(response.content)
-        # Place logo at top-right: A4 width is 210mm, logo width is 50mm, so x = 210 - 50 - margin
-        pdf.image(logo_img, x=150, y=10, w=50)  # Adjust x, y, w as needed
+        logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
+        response = requests.get(logo_url, stream=True)
+        if response.status_code == 200:
+            logo_img = BytesIO(response.content)
+            # Place logo at top-right: A4 width is 210mm, logo width is 50mm, so x = 210 - 50 - margin
+            pdf.image(logo_img, x=150, y=10, w=50)  # Adjust x, y, w as needed
+        else:
+            print(f"Failed to fetch logo. Status code: {response.status_code}")
     except Exception as e:
-        print(f"Error loading logo: {e}")
+        print(f"Error loading logo: {str(e)}")
 
     # Colors
     pdf.set_fill_color(240, 248, 255)  # Alice Blue
     pdf.set_text_color(0, 0, 0)  # Black
 
     # Header (shifted down to start below the logo)
-    pdf.set_y(40)  # Adjust y-coordinate to start below the logo (previously 70 due to letterhead)
+    pdf.set_y(40)  # Adjust y-coordinate to start below the logo
     pdf.cell(0, 10, txt="Payslip", ln=True, align='C', border=1, fill=True)
     pdf.set_fill_color(173, 216, 230)  # Light Blue for Company Name
     pdf.cell(0, 10, txt=data["company_name"], ln=True, align='C', border=1, fill=True)
