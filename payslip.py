@@ -83,7 +83,7 @@ def main():
 
     # Header Details
     st.header("Header Details")
-    # Display logo instead of the "Payslip" text input
+    # Display logo in the UI
     logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
     try:
         response = requests.get(logo_url, stream=True)
@@ -158,6 +158,9 @@ def main():
         pdf_base64 = generate_pdf(data)
         href = f'<a href="data:application/pdf;base64,{pdf_base64}" download="payslip.pdf">Download Payslip PDF</a>'
         st.markdown(href, unsafe_allow_html=True)
+        # Add the logo URL as a clickable link
+        logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
+        st.markdown(f"Logo URL: <a href='{logo_url}' target='_blank'>{logo_url}</a>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
