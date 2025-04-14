@@ -16,7 +16,7 @@ def generate_pdf(data):
 
     # Add logo at top-right corner
     try:
-        logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
+        logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine logo.png"
         response = requests.get(logo_url)
         logo_img = BytesIO(response.content)
         # Place logo at top-right: A4 width is 210mm, logo width is 50mm, so x = 210 - 50 - margin
