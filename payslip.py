@@ -10,6 +10,7 @@ import tempfile
 import os
 import requests
 
+
 def format_currency(amount):
     """Formats the amount with commas, without Naira sign."""
     return f"{amount:,.2f}"
@@ -19,8 +20,8 @@ def generate_pdf(data):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # Add logo at top-right corner of the PDF (using Google Drive link)
-    logo_url = "https://drive.google.com/file/d/1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J/view?usp=drive_link"
+    # Add logo at top-right corner of the PDF (using new Google Drive link)
+    logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
     try:
         # Modify the Google Drive URL to a direct download link
         file_id = logo_url.split("/file/d/")[1].split("/")[0]
@@ -121,8 +122,8 @@ def main():
 
     # Header Details
     st.header("Header Details")
-    # Display logo in the UI (using Google Drive link)
-    logo_url = "https://drive.google.com/file/d/1PssnyCAE2ToTL5gPHXLdln6PZRBfiM5J/view?usp=drive_link"
+    # Display logo in the UI (using new Google Drive link)
+    logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
     try:
         # Modify the Google Drive URL to a direct download link
         file_id = logo_url.split("/file/d/")[1].split("/")[0]
