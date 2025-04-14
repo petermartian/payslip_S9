@@ -138,6 +138,7 @@ def main():
     # PDF Download
     if st.button("Generate Payslip PDF"):
         data = {
+            "logo_url": logo_url,
             "company_name": company_name,
             "company_address": company_address,
             "pay_date": pay_date,
@@ -158,9 +159,7 @@ def main():
         pdf_base64 = generate_pdf(data)
         href = f'<a href="data:application/pdf;base64,{pdf_base64}" download="payslip.pdf">Download Payslip PDF</a>'
         st.markdown(href, unsafe_allow_html=True)
-        # Add the logo URL as a clickable link
-        logo_url = "https://raw.githubusercontent.com/petermartian/payslip_S9/main/Salmnine%20logo.png"
-        st.markdown(f"Logo URL: <a href='{logo_url}' target='_blank'>{logo_url}</a>", unsafe_allow_html=True)
-
+    
+        
 if __name__ == "__main__":
     main()
