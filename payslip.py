@@ -77,17 +77,13 @@ def generate_pdf(data, uploaded_logo=None):
     pdf.cell(95, 10, txt=f"Other Allowances: {format_currency(data['other_allowances'])}", ln=False, border=1)
     pdf.ln(10)
 
-    total_earnings = data['basic_pay'] + data['Housing'] + data['Transport'] + data['other_allowances']
-    total_deductions = data['tax'] + data['employee_pension'] + data['other_deductions']
-    net_pay = total_earnings - total_deductions
-
     pdf.set_fill_color(144, 238, 144)
-    pdf.cell(95, 10, txt=f"Total Earnings: {format_currency(total_earnings)}", ln=False, border=1, fill=True)
+    pdf.cell(95, 10, txt=f"Total Earnings: {format_currency(data['total_earnings'])}", ln=False, border=1, fill=True)
     pdf.set_fill_color(255, 182, 193)
-    pdf.cell(90, 10, txt=f"Total Deductions: {format_currency(total_deductions)}", ln=True, border=1, fill=True)
+    pdf.cell(90, 10, txt=f"Total Deductions: {format_currency(data['total_deductions'])}", ln=True, border=1, fill=True)
 
     pdf.set_fill_color(173, 216, 230)
-    pdf.cell(95, 10, txt=f"Net Pay: {format_currency(net_pay)}", ln=False, border=1, fill=True)
+    pdf.cell(95, 10, txt=f"Net Pay: {format_currency(data['net_pay'])}", ln=False, border=1, fill=True)
 
     pdf.set_y(-30)
     pdf.set_font("Arial", 'I', 10)
@@ -147,7 +143,10 @@ def main():
                         "other_allowances": row['other_allowances'],
                         "tax": row['tax'],
                         "employee_pension": row['employee_pension'],
-                        "other_deductions": row['other_deductions']
+                        "other_deductions": row['other_deductions'],
+                        "total_earnings": row['total_earnings'],
+                        "total_deductions": row['total_deductions'],
+                        "net_pay": row['net_pay']
                     }
                     pdf_bytes = generate_pdf(data, uploaded_logo)
                     filename = f"{row['employee_name'].replace(' ', '_')}_payslip.pdf"
@@ -172,7 +171,10 @@ def main():
                             "other_allowances": row['other_allowances'],
                             "tax": row['tax'],
                             "employee_pension": row['employee_pension'],
-                            "other_deductions": row['other_deductions']
+                            "other_deductions": row['other_deductions'],
+                            "total_earnings": row['total_earnings'],
+                            "total_deductions": row['total_deductions'],
+                            "net_pay": row['net_pay']
                         }
 
                         pdf_bytes = generate_pdf(data, uploaded_logo)
