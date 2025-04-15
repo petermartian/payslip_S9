@@ -91,7 +91,7 @@ def generate_pdf(data, uploaded_logo=None):
 
     pdf.set_y(-30)
     pdf.set_font("Arial", 'I', 10)
-    pdf.cell(0, 10, "This payslip is computer generated and does not require a physical signature.", 0, 0, 'C')
+    pdf.cell(0, 10, "Authorized by HR Department", 0, 0, 'C')
 
     pdf_bytes = pdf.output(dest='S').encode('latin1')
     return pdf_bytes
@@ -123,7 +123,7 @@ def main():
 
     company_name = st.text_input("Company Name", value="Salmnine Investment Ltd")
     company_address = st.text_input("Company Address", value="FF Millennium Towers, VI, Lagos")
-    pay_date = st.date_input("Pay Date", datetime.date.today())
+    pay_date = st.date_input("Pay Date", datetime.date(datetime.date.today().year, datetime.date.today().month, 26))
     working_days = st.number_input("Working Days", value=30)
 
     if uploaded_file:
