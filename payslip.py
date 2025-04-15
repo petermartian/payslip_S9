@@ -130,8 +130,9 @@ def main():
         df = pd.read_csv(uploaded_file)
         st.write("### 📊 Preview of Uploaded Data", df.head())
 
-        if st.button("🚀 Generate and Email Payslips"):
-            with st.spinner("Generating and sending emails..."):
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📥 Generate Payslips Only"):
                 for idx, row in df.iterrows():
                     data = {
                         "company_name": company_name,
@@ -148,11 +149,36 @@ def main():
                         "employee_pension": row['employee_pension'],
                         "other_deductions": row['other_deductions']
                     }
-
                     pdf_bytes = generate_pdf(data, uploaded_logo)
                     filename = f"{row['employee_name'].replace(' ', '_')}_payslip.pdf"
-                    send_email(row['email'], "Your Monthly Payslip", "Please find attached your payslip.", pdf_bytes, filename)
-                st.success("Payslips generated and emails sent successfully!")
+                    b64 = base64.b64encode(pdf_bytes).decode()
+                    href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}">Download {filename}</a>'
+                    st.markdown(href, unsafe_allow_html=True)
+
+        with col2:
+            if st.button("📧 Email Payslips"):
+                with st.spinner("Generating and sending emails..."):
+                    for idx, row in df.iterrows():
+                        data = {
+                            "company_name": company_name,
+                            "company_address": company_address,
+                            "pay_date": pay_date.strftime("%Y-%m-%d"),
+                            "working_days": working_days,
+                            "employee_name": row['employee_name'],
+                            "employee_id": row['employee_id'],
+                            "basic_pay": row['basic_pay'],
+                            "Housing": row['Housing'],
+                            "Transport": row['Transport'],
+                            "other_allowances": row['other_allowances'],
+                            "tax": row['tax'],
+                            "employee_pension": row['employee_pension'],
+                            "other_deductions": row['other_deductions']
+                        }
+
+                        pdf_bytes = generate_pdf(data, uploaded_logo)
+                        filename = f"{row['employee_name'].replace(' ', '_')}_payslip.pdf"
+                        send_email(row['email'], "Your Monthly Payslip", "Please find attached your payslip.", pdf_bytes, filename)
+                    st.success("Payslips emailed successfully!")
 
 if __name__ == '__main__':
     main()
