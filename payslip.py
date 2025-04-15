@@ -7,6 +7,7 @@ from io import BytesIO
 import requests
 import smtplib
 from email.message import EmailMessage
+import tempfile
 
 # --- CONFIG ---
 SENDER_EMAIL = "petmartian@gmail.com"
@@ -14,10 +15,17 @@ SENDER_PASSWORD = "salarypayslip1"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# --- PDF UTILS ---
+# --- UTILS ---
 def format_currency(amount):
     return f"{amount:,.2f}"
 
+def safe_float(val):
+    try:
+        return float(val)
+    except:
+        return 0.0
+
+# --- PDF GENERATOR ---
 def generate_pdf(data, uploaded_logo=None):
     pdf = FPDF()
     pdf.add_page()
@@ -32,18 +40,23 @@ def generate_pdf(data, uploaded_logo=None):
         logo_response = requests.get(download_url, timeout=10, stream=True)
         logo_response.raise_for_status()
         if "image" in logo_response.headers.get("content-type", ""):
-            logo_img = BytesIO(logo_response.content)
-            pdf.image(logo_img, x=150, y=10, w=50)
-            logo_added = True
-    except:
-        pass
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_logo:
+                tmp_logo.write(logo_response.content)
+                tmp_logo.flush()
+                pdf.image(tmp_logo.name, x=150, y=10, w=50)
+                logo_added = True
+    except Exception as e:
+        print("Logo download failed:", e)
 
     if not logo_added and uploaded_logo:
         try:
-            img_bytes = BytesIO(uploaded_logo.read())
-            pdf.image(img_bytes, x=150, y=10, w=50)
-        except:
-            pass
+            uploaded_logo_bytes = uploaded_logo.read()
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_upload:
+                tmp_upload.write(uploaded_logo_bytes)
+                tmp_upload.flush()
+                pdf.image(tmp_upload.name, x=150, y=10, w=50)
+        except Exception as e:
+            print("Fallback logo failed:", e)
 
     pdf.set_y(40)
     pdf.set_fill_color(255, 165, 0)
@@ -85,8 +98,6 @@ def generate_pdf(data, uploaded_logo=None):
     pdf.set_fill_color(173, 216, 230)
     pdf.cell(95, 10, txt=f"Net Pay: {format_currency(data['net_pay'])}", ln=False, border=1, fill=True)
 
-    # Removed the "Authorized by HR Department" line
-
     pdf_bytes = pdf.output(dest='S').encode('latin1')
     return pdf_bytes
 
@@ -97,7 +108,6 @@ def send_email(recipient, subject, body, attachment_bytes, filename):
     msg['To'] = recipient
     msg['Subject'] = subject
     msg.set_content(body)
-
     msg.add_attachment(attachment_bytes, maintype='application', subtype='pdf', filename=filename)
 
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
@@ -135,16 +145,16 @@ def main():
                         "working_days": working_days,
                         "employee_name": row['employee_name'],
                         "employee_id": row['employee_id'],
-                        "basic_pay": row['basic_pay'],
-                        "Housing": row['Housing'],
-                        "Transport": row['Transport'],
-                        "other_allowances": row['other_allowances'],
-                        "tax": row['tax'],
-                        "employee_pension": row['employee_pension'],
-                        "other_deductions": row['other_deductions'],
-                        "total_earnings": row['total_earnings'],
-                        "total_deductions": row['total_deductions'],
-                        "net_pay": row['net_pay']
+                        "basic_pay": safe_float(row['basic_pay']),
+                        "Housing": safe_float(row['Housing']),
+                        "Transport": safe_float(row['Transport']),
+                        "other_allowances": safe_float(row['other_allowances']),
+                        "tax": safe_float(row['tax']),
+                        "employee_pension": safe_float(row['employee_pension']),
+                        "other_deductions": safe_float(row['other_deductions']),
+                        "total_earnings": safe_float(row['total_earnings']),
+                        "total_deductions": safe_float(row['total_deductions']),
+                        "net_pay": safe_float(row['net_pay'])
                     }
                     pdf_bytes = generate_pdf(data, uploaded_logo)
                     filename = f"{row['employee_name'].replace(' ', '_')}_payslip.pdf"
@@ -163,16 +173,16 @@ def main():
                             "working_days": working_days,
                             "employee_name": row['employee_name'],
                             "employee_id": row['employee_id'],
-                            "basic_pay": row['basic_pay'],
-                            "Housing": row['Housing'],
-                            "Transport": row['Transport'],
-                            "other_allowances": row['other_allowances'],
-                            "tax": row['tax'],
-                            "employee_pension": row['employee_pension'],
-                            "other_deductions": row['other_deductions'],
-                            "total_earnings": row['total_earnings'],
-                            "total_deductions": row['total_deductions'],
-                            "net_pay": row['net_pay']
+                            "basic_pay": safe_float(row['basic_pay']),
+                            "Housing": safe_float(row['Housing']),
+                            "Transport": safe_float(row['Transport']),
+                            "other_allowances": safe_float(row['other_allowances']),
+                            "tax": safe_float(row['tax']),
+                            "employee_pension": safe_float(row['employee_pension']),
+                            "other_deductions": safe_float(row['other_deductions']),
+                            "total_earnings": safe_float(row['total_earnings']),
+                            "total_deductions": safe_float(row['total_deductions']),
+                            "net_pay": safe_float(row['net_pay'])
                         }
 
                         pdf_bytes = generate_pdf(data, uploaded_logo)
