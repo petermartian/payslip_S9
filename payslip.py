@@ -85,9 +85,7 @@ def generate_pdf(data, uploaded_logo=None):
     pdf.set_fill_color(173, 216, 230)
     pdf.cell(95, 10, txt=f"Net Pay: {format_currency(data['net_pay'])}", ln=False, border=1, fill=True)
 
-    pdf.set_y(-30)
-    pdf.set_font("Arial", 'I', 10)
-    pdf.cell(0, 10, "Authorized by HR Department", 0, 0, 'C')
+    # Removed the "Authorized by HR Department" line
 
     pdf_bytes = pdf.output(dest='S').encode('latin1')
     return pdf_bytes
