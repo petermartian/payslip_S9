@@ -3,96 +3,78 @@ import datetime
 from fpdf import FPDF
 import base64
 from io import BytesIO
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-import tempfile
-import os
 import requests
 
+
+# ======= Utility Functions =======
 
 def format_currency(amount):
     """Formats the amount with commas, without Naira sign."""
     return f"{amount:,.2f}"
 
-def generate_pdf(data):
+
+def generate_pdf(data, uploaded_logo=None):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # Add logo at top-right corner of the PDF (using new Google Drive link)
+    # === Try Google Drive Logo First ===
     logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
+    logo_added = False
+
     try:
-        # Modify the Google Drive URL to a direct download link
         file_id = logo_url.split("/file/d/")[1].split("/")[0]
         download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-
-        # Download the logo image
         logo_response = requests.get(download_url, timeout=10, stream=True)
-        logo_response.raise_for_status()  # Raise an error for bad status codes
+        logo_response.raise_for_status()
 
-        # Check if the response is an image
         content_type = logo_response.headers.get("content-type", "")
-        if "image" not in content_type:
-            print("The provided URL does not point to an image file.")
-            pdf.set_xy(150, 10)
-            pdf.set_text_color(255, 0, 0)  # Red text for error
-            pdf.cell(0, 10, txt="Logo failed to load: Not an image", align='R')
-            pdf.set_text_color(0, 0, 0)  # Reset to black
-        else:
+        if "image" in content_type:
             logo_img = BytesIO(logo_response.content)
-            # Place logo at top-right: A4 width is 210mm, logo width is 50mm, so x = 210 - 50 - margin
-            pdf.image(logo_img, x=150, y=10, w=50)  # Adjust x, y, w as needed
+            pdf.image(logo_img, x=150, y=10, w=50)
+            logo_added = True
+    except:
+        pass
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error downloading logo: {e}")
-        # Fallback: Add a placeholder text in the PDF if the logo fails to load
-        pdf.set_xy(150, 10)
-        pdf.set_text_color(255, 0, 0)  # Red text for error
-        pdf.cell(0, 10, txt="Logo failed to load: Download error", align='R')
-        pdf.set_text_color(0, 0, 0)  # Reset to black
-    except Exception as e:
-        print(f"Error loading logo for PDF: {str(e)}")
-        # Fallback: Add a placeholder text in the PDF if the logo fails to load
-        pdf.set_xy(150, 10)
-        pdf.set_text_color(255, 0, 0)  # Red text for error
-        pdf.cell(0, 10, txt="Logo failed to load", align='R')
-        pdf.set_text_color(0, 0, 0)  # Reset to black
+    # === Fallback to uploaded logo ===
+    if not logo_added and uploaded_logo is not None:
+        try:
+            img_bytes = BytesIO(uploaded_logo.read())
+            pdf.image(img_bytes, x=150, y=10, w=50)
+            logo_added = True
+        except Exception as e:
+            st.warning(f"Failed to load uploaded logo: {e}")
 
-    # Colors for headers
-    pdf.set_text_color(0, 0, 0)  # Black text for all headers
-
-    # Header (shifted down to start below the logo)
-    pdf.set_y(40)  # Adjust y-coordinate to start below the logo
-    pdf.set_fill_color(255, 165, 0)  # Orange for "Payslip" header
+    # === Header ===
+    pdf.set_y(40)
+    pdf.set_fill_color(255, 165, 0)
     pdf.cell(0, 10, txt="Payslip", ln=True, align='C', border=1, fill=True)
 
-    pdf.set_fill_color(0, 174, 239)  # Cyan Blue (matches logo) for Company Name
+    pdf.set_fill_color(0, 174, 239)
     pdf.cell(0, 10, txt=data["company_name"], ln=True, align='C', border=1, fill=True)
 
-    pdf.set_fill_color(135, 206, 250)  # Sky Blue for Company Address
+    pdf.set_fill_color(135, 206, 250)
     pdf.cell(0, 10, txt=data["company_address"], ln=True, align='C', border=1, fill=True)
     pdf.ln(10)
 
-    # Details
-    pdf.set_fill_color(240, 248, 255)  # Alice Blue for regular cells
+    # === Employee Details ===
+    pdf.set_fill_color(240, 248, 255)
     pdf.cell(95, 10, txt=f"Pay Date: {data['pay_date']}", ln=False, border=1)
-    pdf.set_font("Arial", 'B', size=12)  # Bold font
+    pdf.set_font("Arial", 'B', size=12)
     pdf.cell(95, 10, txt=f"Employee Name: {data['employee_name']}", ln=True, border=1)
-    pdf.set_font("Arial", size=12)  # Reset font
+    pdf.set_font("Arial", size=12)
     pdf.cell(95, 10, txt=f"Working Days: {data['working_days']}", ln=False, border=1)
-    pdf.set_font("Arial", 'B', size=12)  # Bold font
+    pdf.set_font("Arial", 'B', size=12)
     pdf.cell(95, 10, txt=f"Employee ID: {data['employee_id']}", ln=True, border=1)
-    pdf.set_font("Arial", size=12)  # Reset font
+    pdf.set_font("Arial", size=12)
     pdf.ln(10)
 
-    # Earnings & Deductions
-    pdf.set_fill_color(135, 206, 250)  # Sky Blue (same as address) for "Earnings" header
+    # === Earnings & Deductions ===
+    pdf.set_fill_color(135, 206, 250)
     pdf.cell(95, 10, txt="Earnings", ln=False, border=1, fill=True)
-    pdf.set_fill_color(135, 206, 250)  # Sky Blue (same as address) for "Deductions" header
     pdf.cell(90, 10, txt="Deductions", ln=True, border=1, fill=True)
 
-    pdf.set_fill_color(240, 248, 255)  # Alice Blue for regular cells
+    pdf.set_fill_color(240, 248, 255)
     pdf.cell(95, 10, txt=f"Basic Pay: {format_currency(data['basic_pay'])}", ln=False, border=1)
     pdf.cell(90, 10, txt=f"Tax: {format_currency(data['tax'])}", ln=True, border=1)
 
@@ -105,93 +87,76 @@ def generate_pdf(data):
     pdf.cell(95, 10, txt=f"Other Allowances: {format_currency(data['other_allowances'])}", ln=False, border=1)
     pdf.ln(10)
 
-    pdf.set_fill_color(144, 238, 144)  # Light Green for "Total Earnings"
+    pdf.set_fill_color(144, 238, 144)
     pdf.cell(95, 10, txt=f"Total Earnings: {format_currency(data['total_earnings'])}", ln=False, border=1, fill=True)
-    pdf.set_fill_color(255, 182, 193)  # Light Pink for "Total Deductions"
+    pdf.set_fill_color(255, 182, 193)
     pdf.cell(90, 10, txt=f"Total Deductions: {format_currency(data['total_deductions'])}", ln=True, border=1, fill=True)
 
-    pdf.set_fill_color(173, 216, 230)  # Light Blue for "Net Pay"
+    pdf.set_fill_color(173, 216, 230)
     pdf.cell(95, 10, txt=f"Net Pay: {format_currency(data['net_pay'])}", ln=False, border=1, fill=True)
 
-    pdf_bytes = pdf.output(dest='S').encode('latin1')  # Default encoding
+    # === Footer/Signature ===
+    pdf.set_y(-30)
+    pdf.set_font("Arial", 'I', 10)
+    pdf.cell(0, 10, "This payslip is computer generated and does not require a physical signature.", 0, 0, 'C')
+
+    pdf_bytes = pdf.output(dest='S').encode('latin1')
     pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
     return pdf_base64
 
+
+# ======= Streamlit UI =======
+
 def main():
-    st.title("S9 Payslip Generator")
+    st.title("💼 S9 Payslip Generator")
 
-    # Header Details
-    st.header("Header Details")
-    # Display logo in the UI (using new Google Drive link)
-    logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
-    try:
-        # Modify the Google Drive URL to a direct download link
-        file_id = logo_url.split("/file/d/")[1].split("/")[0]
-        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    # Logo uploader
+    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/4322/4322991.png", width=100)
+    st.sidebar.header("🔧 Logo Configuration")
+    uploaded_logo = st.sidebar.file_uploader("Upload Logo (fallback)", type=["png", "jpg", "jpeg"])
 
-        # Download the logo image
-        response = requests.get(download_url, timeout=10, stream=True)
-        response.raise_for_status()  # Raise an error for bad status codes
-
-        # Check if the response is an image
-        content_type = response.headers.get("content-type", "")
-        if "image" not in content_type:
-            st.error("The provided URL does not point to an image file.")
-        else:
-            logo_img = BytesIO(response.content)
-            st.image(logo_img, width=150)  # Adjust width as needed
-
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error downloading logo: {e}")
-    except Exception as e:
-        st.error(f"Error loading logo: {str(e)}")
-
+    # Header
+    st.header("📌 Header Details")
     company_name = st.text_input("Company Name", value="Salmnine Investment Ltd")
-    company_address = st.text_input("Company Address", value="FF Millennium Towers, Ligali Ayorinde, Victoria Island, Lagos")
+    company_address = st.text_input("Company Address", value="FF Millennium Towers, Ligali Ayorinde, VI, Lagos")
 
-    # Payslip & Employee Details
-    st.header("Employee Details")
+    # Employee Info
+    st.header("👤 Employee Details")
     col1, col2 = st.columns(2)
     with col1:
-        pay_date = st.date_input("Pay Date", datetime.date(2025, 4, 11))
-        working_days = st.number_input("Working Days", value=31)
-        st.button("Add Item (Pay Date/Working Days)")
-
-    with col2:
         employee_name = st.text_input("Employee Name", value="James Arthur")
         employee_id = st.text_input("Employee ID", value="0077")
-        st.button("Add Item (Employee Name/ID)")
+    with col2:
+        pay_date = st.date_input("Pay Date", datetime.date.today())
+        working_days = st.number_input("Working Days", value=30)
 
-    # Salary Details
-    st.header("Salary Details")
+    # Salary Info
+    st.header("💰 Salary Breakdown")
     col3, col4 = st.columns(2)
     with col3:
-        st.subheader("Earnings")
         basic_pay = st.number_input("Basic Pay", value=400000)
         Housing = st.number_input("Housing", value=200000)
-        Transport = st.number_input("Transport", value=200000)
-        other_allowances = st.number_input("Other Allowances", value=23000)
-        total_earnings = basic_pay + Housing + Transport + other_allowances
-        st.write(f"Total Earnings: {format_currency(total_earnings)}")
-
+        Transport = st.number_input("Transport", value=150000)
+        other_allowances = st.number_input("Other Allowances", value=25000)
     with col4:
-        st.subheader("Deductions")
         tax = st.number_input("Tax", value=100000)
         employee_pension = st.number_input("Pension (Employee)", value=57000)
         other_deductions = st.number_input("Other Deductions", value=0)
-        total_deductions = tax + employee_pension + other_deductions
-        st.write(f"Total Deductions: {format_currency(total_deductions)}")
 
+    # Calculations
+    total_earnings = basic_pay + Housing + Transport + other_allowances
+    total_deductions = tax + employee_pension + other_deductions
     net_pay = total_earnings - total_deductions
-    st.subheader("Net Pay")
-    st.write(format_currency(net_pay))
 
-    # PDF Download
-    if st.button("Generate Payslip PDF"):
+    st.subheader("📈 Net Pay")
+    st.success(f"₦ {format_currency(net_pay)}")
+
+    # PDF Generation
+    if st.button("🧾 Generate Payslip PDF"):
         data = {
             "company_name": company_name,
             "company_address": company_address,
-            "pay_date": pay_date,
+            "pay_date": pay_date.strftime("%Y-%m-%d"),
             "working_days": working_days,
             "employee_name": employee_name,
             "employee_id": employee_id,
@@ -206,9 +171,13 @@ def main():
             "total_deductions": total_deductions,
             "net_pay": net_pay,
         }
-        pdf_base64 = generate_pdf(data)
-        href = f'<a href="data:application/pdf;base64,{pdf_base64}" download="payslip.pdf">Download Payslip PDF</a>'
-        st.markdown(href, unsafe_allow_html=True)
+
+        pdf_base64 = generate_pdf(data, uploaded_logo)
+        st.markdown(
+            f'<a href="data:application/pdf;base64,{pdf_base64}" download="payslip.pdf">📥 Download Payslip PDF</a>',
+            unsafe_allow_html=True
+        )
+
 
 if __name__ == "__main__":
     main()
