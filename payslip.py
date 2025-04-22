@@ -26,14 +26,12 @@ def safe_float(val):
         return 0.0
 
 # --- PDF GENERATOR ---
-def generate_pdf(data, uploaded_logo=None):
+def generate_pdf(data):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
     logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
-    logo_added = False
-
     try:
         file_id = logo_url.split("/file/d/")[1].split("/")[0]
         download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
@@ -44,19 +42,8 @@ def generate_pdf(data, uploaded_logo=None):
                 tmp_logo.write(logo_response.content)
                 tmp_logo.flush()
                 pdf.image(tmp_logo.name, x=150, y=10, w=50)
-                logo_added = True
     except Exception as e:
         print("Logo download failed:", e)
-
-    if not logo_added and uploaded_logo:
-        try:
-            uploaded_logo_bytes = uploaded_logo.read()
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_upload:
-                tmp_upload.write(uploaded_logo_bytes)
-                tmp_upload.flush()
-                pdf.image(tmp_upload.name, x=150, y=10, w=50)
-        except Exception as e:
-            print("Fallback logo failed:", e)
 
     pdf.set_y(40)
     pdf.set_fill_color(255, 165, 0)
@@ -119,9 +106,6 @@ def send_email(recipient, subject, body, attachment_bytes, filename):
 def main():
     st.title("📤 Bulk Payslip Generator & Mailer")
 
-    uploaded_logo = st.sidebar.file_uploader("Upload Company Logo (optional fallback)", type=["png", "jpg", "jpeg"])
-    st.sidebar.info("Logo from Google Drive will be used by default. This is fallback only.")
-
     st.header("📁 Upload CSV with Employee Details")
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
@@ -156,7 +140,7 @@ def main():
                         "total_deductions": safe_float(row['total_deductions']),
                         "net_pay": safe_float(row['net_pay'])
                     }
-                    pdf_bytes = generate_pdf(data, uploaded_logo)
+                    pdf_bytes = generate_pdf(data)
                     filename = f"{row['employee_name'].replace(' ', '_')}_payslip.pdf"
                     b64 = base64.b64encode(pdf_bytes).decode()
                     href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}">Download {filename}</a>'
@@ -185,7 +169,7 @@ def main():
                             "net_pay": safe_float(row['net_pay'])
                         }
 
-                        pdf_bytes = generate_pdf(data, uploaded_logo)
+                        pdf_bytes = generate_pdf(data)
                         filename = f"{row['employee_name'].replace(' ', '_')}_payslip.pdf"
                         send_email(row['email'], "Your Monthly Payslip", "Please find attached your payslip.", pdf_bytes, filename)
                     st.success("Payslips emailed successfully!")
