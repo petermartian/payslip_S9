@@ -9,7 +9,6 @@ import smtplib
 from email.message import EmailMessage
 import tempfile
 
-# --- CONFIG ---
 SENDER_EMAIL = "petmartian@gmail.com"
 SENDER_PASSWORD = "salarypayslip1"
 SMTP_SERVER = "smtp.gmail.com"
@@ -29,42 +28,33 @@ def safe_float(val):
 def generate_pdf(data):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
 
-    logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
-    try:
-        file_id = logo_url.split("/file/d/")[1].split("/")[0]
-        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        logo_response = requests.get(download_url, timeout=10, stream=True)
-        logo_response.raise_for_status()
-        if "image" in logo_response.headers.get("content-type", ""):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_logo:
-                tmp_logo.write(logo_response.content)
-                tmp_logo.flush()
-                pdf.image(tmp_logo.name, x=150, y=10, w=50)
-    except Exception as e:
-        print("Logo download failed:", e)
+    # Payslip Title
+    pdf.set_font("Arial", style="B", size=18)
+    pdf.cell(0, 15, txt="PAYSLIP", ln=True, align='C', border=1)
+    pdf.ln(5)
 
-    pdf.set_y(40)
-    pdf.set_fill_color(255, 165, 0)
-    pdf.cell(0, 10, txt="Payslip", ln=True, align='C', border=1, fill=True)
-    pdf.set_fill_color(0, 174, 239)
-    pdf.cell(0, 10, txt=data["company_name"], ln=True, align='C', border=1, fill=True)
-    pdf.set_fill_color(135, 206, 250)
-    pdf.cell(0, 10, txt=data["company_address"], ln=True, align='C', border=1, fill=True)
+    # Company Details
+    pdf.set_font("Arial", style="", size=12)
+    pdf.cell(0, 10, txt=data["company_name"], ln=True, align='C', border=1)
+    pdf.cell(0, 10, txt=data["company_address"], ln=True, align='C', border=1)
     pdf.ln(10)
 
+    # Employee Details
     pdf.cell(95, 10, txt=f"Pay Date: {data['pay_date']}", ln=False, border=1)
     pdf.cell(95, 10, txt=f"Employee Name: {data['employee_name']}", ln=True, border=1)
     pdf.cell(95, 10, txt=f"Working Days: {data['working_days']}", ln=False, border=1)
     pdf.cell(95, 10, txt=f"Employee ID: {data['employee_id']}", ln=True, border=1)
     pdf.ln(10)
 
-    pdf.set_fill_color(135, 206, 250)
-    pdf.cell(95, 10, txt="Earnings", ln=False, border=1, fill=True)
-    pdf.cell(90, 10, txt="Deductions", ln=True, border=1, fill=True)
+    # Earnings and Deductions Headers
+    pdf.set_font("Arial", style="B", size=12)
+    pdf.cell(95, 10, txt="EARNINGS", ln=False, border=1)
+    pdf.cell(90, 10, txt="DEDUCTIONS", ln=True, border=1)
 
-    pdf.set_fill_color(240, 248, 255)
+    # Back to normal font
+    pdf.set_font("Arial", size=12)
+
     pdf.cell(95, 10, txt=f"Basic Pay: {format_currency(data['basic_pay'])}", ln=False, border=1)
     pdf.cell(90, 10, txt=f"Tax: {format_currency(data['tax'])}", ln=True, border=1)
 
@@ -77,13 +67,15 @@ def generate_pdf(data):
     pdf.cell(95, 10, txt=f"Other Allowances: {format_currency(data['other_allowances'])}", ln=False, border=1)
     pdf.ln(10)
 
-    pdf.set_fill_color(144, 238, 144)
-    pdf.cell(95, 10, txt=f"Total Earnings: {format_currency(data['total_earnings'])}", ln=False, border=1, fill=True)
-    pdf.set_fill_color(255, 182, 193)
-    pdf.cell(90, 10, txt=f"Total Deductions: {format_currency(data['total_deductions'])}", ln=True, border=1, fill=True)
+    # Total Earnings and Deductions
+    pdf.set_font("Arial", style="B", size=12)
+    pdf.cell(95, 10, txt=f"Total Earnings: {format_currency(data['total_earnings'])}", ln=False, border=1)
+    pdf.cell(90, 10, txt=f"Total Deductions: {format_currency(data['total_deductions'])}", ln=True, border=1)
 
-    pdf.set_fill_color(173, 216, 230)
-    pdf.cell(95, 10, txt=f"Net Pay: {format_currency(data['net_pay'])}", ln=False, border=1, fill=True)
+    # Net Pay
+    pdf.ln(5)
+    pdf.set_font("Arial", style="B", size=14)
+    pdf.cell(0, 12, txt=f"Net Pay: {format_currency(data['net_pay'])}", ln=True, border=1, align='C')
 
     pdf_bytes = pdf.output(dest='S').encode('latin1')
     return pdf_bytes
@@ -104,23 +96,49 @@ def send_email(recipient, subject, body, attachment_bytes, filename):
 
 # --- STREAMLIT APP ---
 def main():
-    st.title("📤 Bulk Payslip Generator & Mailer")
+    st.set_page_config(page_title="Payslip Generator & Mailer", page_icon="📤", layout="wide")
 
-    st.header("📁 Upload CSV with Employee Details")
-    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
+    hide_streamlit_style = """
+        <style>
+        [data-testid="stSidebar"] {display: none;}
+        [data-testid="collapsedControl"] {display: none;}
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            padding-left: 5rem;
+            padding-right: 5rem;
+        }
+        </style>
+        """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-    company_name = st.text_input("Company Name", value="Salmnine Investment Ltd")
-    company_address = st.text_input("Company Address", value="FF Millennium Towers, VI, Lagos")
-    pay_date = st.date_input("Pay Date", datetime.date(datetime.date.today().year, datetime.date.today().month, 26))
-    working_days = st.number_input("Working Days", value=30)
+    st.markdown("<h1 style='text-align: center; font-size: 3rem;'>📤 Bulk Payslip Generator & Mailer</h1>", unsafe_allow_html=True)
+    st.markdown("---")
+
+    st.markdown("### 📁 Upload CSV with Employee Details")
+
+    uploaded_file = st.file_uploader("Upload Employee CSV File", type=["csv"], label_visibility="collapsed")
+
+    with st.container():
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            company_name = st.text_input("🏢 Company Name", value="Salmnine Investment Ltd")
+            company_address = st.text_input("📍 Company Address", value="FF Millennium Towers, VI, Lagos")
+        with col2:
+            pay_date = st.date_input("📅 Pay Date", datetime.date(datetime.date.today().year, datetime.date.today().month, 26))
+            working_days = st.number_input("📆 Working Days", value=30, min_value=1, max_value=31)
 
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
-        st.write("### 📊 Preview of Uploaded Data", df.head())
+        st.success(f"✅ {len(df)} employees loaded successfully!")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("📥 Generate Payslips Only"):
+        st.markdown("### 👀 Preview of Uploaded Data")
+        st.dataframe(df, use_container_width=True)
+
+        generate_col, email_col = st.columns(2)
+
+        with generate_col:
+            if st.button("📥 Generate Payslips", use_container_width=True):
                 for idx, row in df.iterrows():
                     data = {
                         "company_name": company_name,
@@ -146,9 +164,10 @@ def main():
                     href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}">Download {filename}</a>'
                     st.markdown(href, unsafe_allow_html=True)
 
-        with col2:
-            if st.button("📧 Email Payslips"):
-                with st.spinner("Generating and sending emails..."):
+        with email_col:
+            if st.button("📧 Email Payslips", use_container_width=True):
+                with st.spinner("⏳ Sending Payslips..."):
+                    progress = st.progress(0)
                     for idx, row in df.iterrows():
                         data = {
                             "company_name": company_name,
@@ -168,11 +187,11 @@ def main():
                             "total_deductions": safe_float(row['total_deductions']),
                             "net_pay": safe_float(row['net_pay'])
                         }
-
                         pdf_bytes = generate_pdf(data)
                         filename = f"{row['employee_name'].replace(' ', '_')}_payslip.pdf"
                         send_email(row['email'], "Your Monthly Payslip", "Please find attached your payslip.", pdf_bytes, filename)
-                    st.success("Payslips emailed successfully!")
+                        progress.progress((idx + 1) / len(df))
+                    st.success("🎉 All Payslips Sent Successfully!")
 
 if __name__ == '__main__':
     main()
