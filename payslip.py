@@ -29,6 +29,23 @@ def generate_pdf(data):
     pdf = FPDF()
     pdf.add_page()
 
+    # Add Logo
+    logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
+    try:
+        file_id = logo_url.split("/file/d/")[1].split("/")[0]
+        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        logo_response = requests.get(download_url, timeout=10, stream=True)
+        logo_response.raise_for_status()
+        if "image" in logo_response.headers.get("content-type", ""):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_logo:
+                tmp_logo.write(logo_response.content)
+                tmp_logo.flush()
+                pdf.image(tmp_logo.name, x=150, y=10, w=40)
+    except Exception as e:
+        print("Logo download failed:", e)
+
+    pdf.ln(30)
+
     # Payslip Title
     pdf.set_font("Arial", style="B", size=18)
     pdf.cell(0, 15, txt="PAYSLIP", ln=True, align='C', border=1)
@@ -79,6 +96,10 @@ def generate_pdf(data):
 
     pdf_bytes = pdf.output(dest='S').encode('latin1')
     return pdf_bytes
+
+# --- EMAIL UTILS ---
+# (Rest of your code remains the same)
+
 
 # --- EMAIL UTILS ---
 def send_email(recipient, subject, body, attachment_bytes, filename):
