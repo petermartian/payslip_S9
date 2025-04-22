@@ -29,7 +29,22 @@ def generate_pdf(data):
     pdf = FPDF()
     pdf.add_page()
 
-    # Add Logo
+    # Add background letterhead image
+    letterhead_url = "https://drive.google.com/file/d/1vTojAg8yf9J8SGEncECfgi1HXquuokzH/view?usp=sharing"
+    try:
+        file_id = letterhead_url.split("/file/d/")[1].split("/")[0]
+        download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        bg_response = requests.get(download_url, timeout=10, stream=True)
+        bg_response.raise_for_status()
+        if "image" in bg_response.headers.get("content-type", ""):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_bg:
+                tmp_bg.write(bg_response.content)
+                tmp_bg.flush()
+                pdf.image(tmp_bg.name, x=0, y=0, w=210, h=297)  # A4
+    except Exception as e:
+        print("Background image failed:", e)
+
+    # Add Logo (top-right corner)
     logo_url = "https://drive.google.com/file/d/1melsj54pPwsjmYGRE1SQg7EBLZ6BthCn/view?usp=drive_link"
     try:
         file_id = logo_url.split("/file/d/")[1].split("/")[0]
@@ -97,8 +112,7 @@ def generate_pdf(data):
     pdf_bytes = pdf.output(dest='S').encode('latin1')
     return pdf_bytes
 
-# --- EMAIL UTILS ---
-# (Rest of your code remains the same)
+
 
 
 # --- EMAIL UTILS ---
